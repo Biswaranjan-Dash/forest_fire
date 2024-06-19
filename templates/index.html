@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Fire Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 90vw;
+            height: 90vh;
+        }
+        #forest {
+            display: grid;
+            grid-gap: 1px;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+
+        }
+        .cell {
+            background-color: white;
+        }
+        .empty { background-color: white; }
+        .tree { background-color: green; }
+        .fire { background-color: red; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Forest Fire Simulation</h1>
+        <div id="forest"></div>
+    </div>
+    <script>
+        const socket = io();
+        const forestDiv = d3.select("#forest");
+
+        function createForest(forest) {
+            const cellSize = Math.floor(Math.min(forestDiv.node().offsetWidth / forest.length, forestDiv.node().offsetHeight / forest[0].length)) - 1;
+            forestDiv.style("grid-template-columns", `repeat(${forest.length}, ${cellSize}px)`);
+            forestDiv.selectAll(".cell")
+                .data(forest.flat())
+                .enter().append("div")
+                .attr("class", d => `cell ${d === 0 ? 'empty' : d === 1 ? 'tree' : 'fire'}`)
+                .style("width", `${cellSize}px`)
+                .style("height", `${cellSize}px`);
+        }
+
+        function updateForest(forest) {
+            const cellSize = Math.floor(Math.min(forestDiv.node().offsetWidth / forest.length, forestDiv.node().offsetHeight / forest[0].length)) - 1;
+            forestDiv.style("grid-template-columns", `repeat(${forest.length}, ${cellSize}px)`);
+            forestDiv.selectAll(".cell")
+                .data(forest.flat())
+                .attr("class", d => `cell ${d === 0 ? 'empty' : d === 1 ? 'tree' : 'fire'}`)
+                .style("width", `${cellSize}px`)
+                .style("height", `${cellSize}px`);
+        }
+
+        socket.on('connect', () => {
+            console.log("Connected to server");
+            socket.emit('start_simulation');
+        });
+
+        socket.on('update', data => {
+            updateForest(data.forest);
+        });
+
+        // Initialize forest with a fully green grid (just to setup the grid structure)
+        createForest(Array(100).fill().map(() => Array(100).fill(1)));
+    </script>
+</body>
+</html>
